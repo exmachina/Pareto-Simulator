@@ -1,3 +1,4 @@
 Nya nyheter!
-�nnu nyare!
+Ännu nyare!
 Och en tredje rad
+Fjärde rad tillagd på GitHub
