@@ -2,3 +2,4 @@ Nya nyheter!
 Ännu nyare!
 Och en tredje rad
 Fjärde rad tillagd på GitHub
+Femte rad med åäöÅÄÖ
