@@ -2,6 +2,11 @@ package p1;
 
 public class Calc {
 
+	/**
+	 * Comment
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		Calc c = new Calc();
 
