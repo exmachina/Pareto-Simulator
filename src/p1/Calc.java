@@ -11,6 +11,6 @@ public class Calc {
 	}
 
 	private int calculate(int i) {
-		return 2 * i;
+		return 3 * i;
 	}
 }
