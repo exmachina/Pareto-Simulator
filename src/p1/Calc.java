@@ -3,7 +3,7 @@ package p1;
 public class Calc {
 
 	/**
-	 * Goint to 20
+	 * Going to 20
 	 * 
 	 * @param args
 	 */
