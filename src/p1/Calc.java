@@ -3,14 +3,14 @@ package p1;
 public class Calc {
 
 	/**
-	 * Comment
+	 * Goint to 20
 	 * 
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		Calc c = new Calc();
 
-		for (int i = 0; i <= 10; i++) {
+		for (int i = 0; i <= 20; i++) {
 			System.out.println("" + i + " " + c.calculate(i));
 		}
 	}
