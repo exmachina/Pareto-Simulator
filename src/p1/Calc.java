@@ -4,7 +4,7 @@ public class Calc {
 
 	/**
 	 * Going to 20. Skriver lite till för att se om commits är numrerade Jag gör
-	 * en ändring
+	 * en ändring. en sak till.
 	 * 
 	 * @param args
 	 */
