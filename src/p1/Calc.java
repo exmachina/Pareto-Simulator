@@ -3,7 +3,7 @@ package p1;
 public class Calc {
 
 	/**
-	 * Going to 20
+	 * Going to 20. Skriver lite till för att se om commits är numrerade
 	 * 
 	 * @param args
 	 */
