@@ -17,7 +17,7 @@ import javax.swing.JPanel;
  * @author jonas
  *
  *         Demonstrate a game where personCount persons with startCach dollars
- *         each at the beginning of the game. They play two and two beting one
+ *         each at the beginning of the game. They play two and two betting one
  *         dollar each and one of them randomly wins.
  *
  */
