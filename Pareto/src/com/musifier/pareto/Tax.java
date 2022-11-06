@@ -13,7 +13,7 @@ public class Tax {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
+		
 
 		float cash = 0;
 		float taxMinProc = 0.1f;
@@ -25,6 +25,14 @@ public class Tax {
 
 	}
 
+	/**
+	 * Returns the taxation factor
+	 * @param cash the persons amount of cash after base deduction 
+	 * @param taxMinProc
+	 * @param taxMaxProc
+	 * @param taxMaxProcLim
+	 * @return
+	 */
 	public static float getFactor(float cash, float taxMinProc, float taxMaxProc, float taxMaxProcLim) {
 
 		if (taxMaxProcLim < cash) {

@@ -23,8 +23,8 @@ import javax.swing.JPanel;
  */
 public class Paretodemo implements Runnable {
 
-	enum taxPaybackModes {
-		Charity, CharityMinimum, Flat
+	enum WelfareModes {
+		Charity, CharityMinimum, Flat, CharityMinimumRDNTA
 	}
 
 	/**
@@ -38,19 +38,17 @@ public class Paretodemo implements Runnable {
 	/**
 	 * Total cash in system
 	 */
-	float cashMax;
+	float cashTotal;
 
 	private int categoryCount = 1000;
 
 	private int gamesPerRound = 100;
 
-	private int height = 1000;
-	private float maxCash;
 	/**
-	 * Them minimum cash of any player. When a players cash is down to 0 that person
-	 * is put of the game.
+	 * Height of main panel
 	 */
-	private float minCash;
+	private int height = 1000;
+
 	private ParetoPanel panel;
 	/**
 	 * The number of persons in the system.
@@ -61,10 +59,15 @@ public class Paretodemo implements Runnable {
 	ArrayList<Person> personsDumped;
 
 	private int personsPerCategory = 6;
+
 	private boolean redistNonNeedToAll;
 	private boolean running;
 
-	private long sleepMs = 0;
+	private long sleepMs = 30;
+
+	/**
+	 * The amount given to each person from start
+	 */
 	private float startCach = 20;
 
 	private float taxMaxProc = 0.01f;
@@ -72,69 +75,128 @@ public class Paretodemo implements Runnable {
 	private float taxMaxProcLim = 100;
 
 	private float taxMinProc = 0.01f;
-	private taxPaybackModes taxPaybackMode = taxPaybackModes.CharityMinimum;
+	public WelfareModes welfareMode = WelfareModes.Flat;
 
-	private float taxPovertyThreshold = 5;
+	/**
+	 * 
+	 */
+	private float povertyLim = 5;
 
+	/**
+	 * The amount in the "state tax treasury"
+	 */
 	private float taxTreasury;
 
 	private int width = 1500;
 
 	private JFrame frame;
 
+	Person personX;
+
+	public float abilityStart = 4;
+	public int abilityMin = 2;
+	public int abilityMax = 6;
+
+	float abilityDelta = 0.01f;
+
+	public boolean welfareAbilityBoost;
+
 	public Paretodemo() {
 		init();
 	}
 
-	private float charityMinimumPayback(float treasury, boolean distributeNonNeedToAll) {
-		float resAcc = 0;
-		for (Person p : personsAll) {
-			float need = taxPovertyThreshold - p.getCash();
-			if (need > 0) {
-				resAcc += need;
-				p.increment(need);
-			}
-		}
-
-		if (distributeNonNeedToAll) {
-			float rest = treasury - resAcc;
-			float d = rest / personCount;
-			for (Person p : personsAll) {
-				p.increment(d);
-			}
-			resAcc = treasury;
-		}
-
-		return resAcc;
-	}
-
-	private float charityPayback(float taxAcc) {
-		float res = taxAcc;
+	/**
+	 * 
+	 * @param treasury
+	 * @param distributeNonNeedToAll
+	 * @return
+	 */
+	private float paybackCharityMinimum(float treasury, boolean distributeNonNeedToAll) {
+		float needAcc = 0;
 		List<Person> poor = new ArrayList<Person>();
 		for (Person p : personsAll) {
-			if (p.getCash() < taxPovertyThreshold) {
+			float need = povertyLim - p.getCash();
+			if (need > 0) {
+				needAcc += need;
 				poor.add(p);
+//				p.increment(need);
 			}
 		}
 
-		if (poor.size() == 0) {
-			flatPayback(taxAcc);
-		} else {
-			float f = taxAcc / poor.size();
+		if (needAcc <= treasury) {
 			for (Person p : poor) {
-				p.increment(f);
+				float need = povertyLim - p.getCash();
+				p.increment(need);
+			}
+
+			if (distributeNonNeedToAll) {
+				float rest = treasury - needAcc;
+				float d = rest / personCount;
+				for (Person p : personsAll) {
+					p.increment(d);
+				}
+				needAcc = treasury;
+			}
+
+		} else {
+			float q = treasury / needAcc;
+			for (Person p : poor) {
+				float need = povertyLim - p.getCash();
+				p.increment(need * q);
 			}
 		}
+
+		return needAcc;
+	}
+
+	/**
+	 * Bring all persons up to poverttyLim taxAcc equally over all poor persons,<br>
+	 * i.e. persons p with <code>p.getCash() < povertyLim</code>
+	 * 
+	 * @param taxAcc
+	 * @return the amount paid to persons.
+	 */
+	private float paybackCharity(float taxAcc) {
+		float res = 0;
+		List<Person> poor = new ArrayList<Person>();
+		for (Person p : personsAll) {
+			float poverty = povertyLim - p.getCash();
+			if (poverty > 0) {
+				res += poverty;
+				p.increment(poverty);
+				if (welfareAbilityBoost) {
+					p.setAbility(p.getAbility() + abilityDelta);
+				}
+
+			}
+		}
+
+//		if (poor.size() == 0) {
+//			return paybackFlat(taxAcc);
+//		} else {
+//			float f = taxAcc / poor.size();
+//			for (Person p : poor) {
+//				p.increment(f);
+//			}
+//		}
 		return res;
 	}
 
-	private float flatPayback(float taxAcc) {
-		// TODO Auto-generated method stub
-		// Flat payback
+	/**
+	 * Divide taxAcc equally over all persons.
+	 * 
+	 * @param taxAcc
+	 * @return taxAcc
+	 */
+	private float paybackFlat(float taxAcc) {
+
 		float k = taxAcc / personCount;
 		// System.out.println("incrementing by tax return=" + k);
 		for (Person p : personsAll) {
 			p.increment(k);
+			if (welfareAbilityBoost) {
+				p.setAbility(p.getAbility() + abilityDelta);
+			}
 		}
 		return taxAcc;
 	}
@@ -143,7 +205,7 @@ public class Paretodemo implements Runnable {
 		return personsAll;
 	}
 
-	float getCashOfTop20(ArrayList<Person> list) {
+	float getCashOfRichest20Percent(ArrayList<Person> list) {
 		int first = (int) (0.8 * list.size());
 		// System.out.println("First=" + first);
 		int amount = 0;
@@ -194,7 +256,7 @@ public class Paretodemo implements Runnable {
 	}
 
 	public float getTaxPovertyThreshold() {
-		return taxPovertyThreshold;
+		return povertyLim;
 	}
 
 	void init() {
@@ -202,18 +264,22 @@ public class Paretodemo implements Runnable {
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
 		taxTreasury = 0;
-		cashMax = personCount * startCach;
+		cashTotal = personCount * startCach;
 		personsActive = new ArrayList<Person>();
 		personsAll = new ArrayList<Person>();
 		personsDumped = new ArrayList<Person>();
 		for (int i = 0; i < personCount; i++) {
-			Person p = new Person(startCach);
+			Person p = new Person(startCach, this);
 			personsActive.add(p);
 			personsAll.add(p);
 		}
 
+		int r = (int) Math.floor(Math.random() * personCount);
+		personX = personsAll.get(r);
+
 		// statArray = new int[cashMax];
-		panel = new ParetoPanel(cashMax, personsAll, this);
+		panel = new ParetoPanel(cashTotal, personsAll, this);
+		panel.setConstants(personCount, categoryCount, personsPerCategory);
 		panel.setBounds(0, 0, width, height);
 
 		if (frame == null) {
@@ -237,12 +303,19 @@ public class Paretodemo implements Runnable {
 		return running;
 	}
 
+	/**
+	 * Returns the sum total of personal poverty measured as personal cash less than
+	 * <code>povertyLim</code> over all persons.
+	 * 
+	 * @param persons
+	 * @return
+	 */
 	private float need(ArrayList<Person> persons) {
 		float acc = 0;
 		for (Person p : persons) {
 			float c = p.getCash();
-			if (c < taxPovertyThreshold) {
-				acc += (taxPovertyThreshold - c);
+			if (c < povertyLim) {
+				acc += (povertyLim - c);
 			}
 		}
 		return acc;
@@ -252,18 +325,51 @@ public class Paretodemo implements Runnable {
 		panel.repaint();
 	}
 
+	/**
+	 * For each round,
+	 * <ol>
+	 * <li>Pick two random persons from <code>personsActive</code>
+	 * <li>increment one and decrement the other
+	 * <li>if the decremented person is broke, i.e. has zero dollar left, move him
+	 * to <code>personsDumped</code>
+	 * </ol>
+	 * 
+	 * 
+	 * @param rounds
+	 */
 	private void play(int rounds) {
 
 		for (int i = 0; i < rounds; i++) {
 
 			Person p1 = getRandomPlayer(personsActive);
 			Person p2 = getRandomPlayer(personsActive);
-			p1.increment();
-			p2.decrement();
+
+			float a1 = p1.getAbility();
+			float a2 = p2.getAbility();
+
+			if (Math.random() * (a1 + a2) < a1) {
+				p1.increment();
+				p2.decrement();
+
+				p1.setAbility(a1 + abilityDelta);
+				p2.setAbility(a2 - abilityDelta);
+
+			} else {
+				p2.increment();
+				p1.decrement();
+
+				p2.setAbility(a2 + abilityDelta);
+				p1.setAbility(a1 - abilityDelta);
+
+			}
 
 			if (p2.getCash() < 1) {
 				personsActive.remove(p2);
 				personsDumped.add(p2);
+			}
+			if (p1.getCash() < 1) {
+				personsActive.remove(p1);
+				personsDumped.add(p1);
 			}
 		}
 
@@ -279,20 +385,28 @@ public class Paretodemo implements Runnable {
 	}
 
 	/**
+	 * Distributes the collected tax over persons in a way determined by
+	 * welfareMode.
 	 * 
-	 * @param taxAcc
+	 * @return the amount paid back to persons
+	 * 
+	 * @param taxAcc <@param taxTreasury
 	 */
-	private float redistribute(float taxTreasury) {
+	private float payback_TaxToPersons(float taxTreasury) {
 		float res = 0;
-		switch (taxPaybackMode) {
+		switch (welfareMode) {
 		case Flat:
-			res = flatPayback(taxTreasury);
+			res = paybackFlat(taxTreasury);
 			break;
 		case Charity:
-			res = charityPayback(taxTreasury);
+			res = paybackCharity(taxTreasury);
+
 			break;
 		case CharityMinimum:
-			res = charityMinimumPayback(taxTreasury, redistNonNeedToAll);
+			res = paybackCharityMinimum(taxTreasury, false);
+			break;
+		case CharityMinimumRDNTA:
+			res = paybackCharityMinimum(taxTreasury, true);
 			break;
 		default:
 			assert false;
@@ -301,10 +415,14 @@ public class Paretodemo implements Runnable {
 		return res;
 	}
 
+	/**
+	 * For all persons p in <code>personsDumped</code>, if
+	 * <code>p,cash() >= povetyLim</code>, move to p to <code>personsActive</code>.
+	 */
 	private void resurectPersons() {
 		List<Person> tmp = new ArrayList<Person>();
 		for (Person p : personsDumped) {
-			if (p.getCash() >= taxPovertyThreshold) {
+			if (p.getCash() >= povertyLim) {
 				tmp.add(p);
 			}
 		}
@@ -315,7 +433,6 @@ public class Paretodemo implements Runnable {
 	public void run() {
 		// long repeats = repeatCount;
 		while (running) {
-
 			synchronized (this) {
 				play(gamesPerRound);
 				float need = need(personsAll);
@@ -324,7 +441,7 @@ public class Paretodemo implements Runnable {
 					taxTreasury += tax();
 				}
 				if (taxTreasury > 0) {
-					taxTreasury -= redistribute(taxTreasury);
+					taxTreasury -= payback_TaxToPersons(taxTreasury);
 				}
 
 				resurectPersons();
@@ -365,7 +482,7 @@ public class Paretodemo implements Runnable {
 
 	public void setTaxMaxProc(double d) {
 		this.taxMaxProc = (float) d;
-		System.out.println("max " + taxMaxProc);
+//		System.out.println("max " + taxMaxProc);
 	}
 
 	public void setTaxMaxProcLim(double d) {
@@ -374,11 +491,11 @@ public class Paretodemo implements Runnable {
 
 	public void setTaxMinProc(double d) {
 		this.taxMinProc = (float) d;
-		System.out.println("min " + taxMinProc);
+//		System.out.println("min " + taxMinProc);
 	}
 
 	public void setTaxPovertyThreshold(float taxPovertyThreshold) {
-		this.taxPovertyThreshold = taxPovertyThreshold;
+		this.povertyLim = taxPovertyThreshold;
 	}
 
 	private void sleep() {
@@ -401,10 +518,15 @@ public class Paretodemo implements Runnable {
 
 	}
 
+	/**
+	 * 
+	 * @return
+	 * @see tax
+	 */
 	private float tax() {
 		float taxAcc = 0;
 		for (Person p : personsAll) {
-			taxAcc += p.tax(taxPovertyThreshold, taxMinProc, taxMaxProc, taxMaxProcLim);
+			taxAcc += p.tax(povertyLim, taxMinProc, taxMaxProc, taxMaxProcLim);
 		}
 
 		return taxAcc;
@@ -416,6 +538,16 @@ public class Paretodemo implements Runnable {
 
 	public void setPersonCount(int personCount) {
 		this.personCount = personCount;
+	}
+
+	public float getCashOfPoorest20Percent(ArrayList<Person> list) {
+		int last = (int) (0.2 * list.size());
+		// System.out.println("First=" + first);
+		int amount = 0;
+		for (int i = 0; i <= last; i++) {
+			amount += list.get(i).getCash();
+		}
+		return amount;
 	}
 
 }
